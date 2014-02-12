@@ -1,0 +1,7 @@
+-- Comando findOne
+	- Pueden asignarsele dos argumentos en forma de objetos
+		- 1.- Es el parametro para filtrar
+		- 2.- Es el parametro para asignar los datos que queramos mostrar
+-- El servidor cierra el puntero despues de 10 minutos de inactividad por default
+
+-- Comando find
