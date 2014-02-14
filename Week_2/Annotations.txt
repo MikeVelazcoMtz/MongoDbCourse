@@ -5,3 +5,116 @@
 -- El servidor cierra el puntero despues de 10 minutos de inactividad por default
 
 -- Comando find
+	Comando $gt (Greater than).- Sirve para manipular valores mayores a "X"
+	Comando $lte (Lower than and Equal) .- Sirve para manipular valores menores o iguales a "X"
+
+	Los comandos anteriores aplican tambien a cadenas:
+
+> db.people.find({name:{$lt: "D"}})
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "name" : "Alice" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+> db.people.find({name:{$lt: "B"}})
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "name" : "Alice" }
+
+Dicho ordenamiento esta basado en la codificacion UTF-8
+
+	Comando $exists .- Permite filtrar los documentos donde el campo en cuestion existe
+	Comando $type   .- Permite Filtrar por el tipo de dato contenido en dichos documentos Son tipos Numericos del estandar BSON
+	http://bsonspec.org/#/specification
+
+	Comando $regex .- Permite filtrar por medio de expresiones regulares
+
+> db.people.find({name:{$regex: "a"}}) // Los elementos que contienen  a en la llave name
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar" }
+
+> db.people.find({name:{$regex: "e$"}}) //  Los elementos que terminan en e
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "name" : "Alice" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+
+	Comando $or .- Permite enlazar n parametros de busqueda de forma similar al OR de MySQL
+
+> db.people.find({$or : [{name : {$regex : "e$" }},{age: {$exists : true}}]})
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "smith", "age" : 30, "profession" : "hacker" }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "name" : "Jones", "age" : 35, "profession" : "baker" }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "name" : "Alice" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+
+Busqueda en arrays .- Opera en forma muy similar a la busqueda en elementos:
+
+> db.accounts.find({favorites:"pretzels"})
+{ "_id" : ObjectId("52fd88661c6d639b99fe8e9c"), "name" : "George", "favorites" : [  "Ice cream",  "pretzels" ] }
+{ "_id" : ObjectId("52fd88ce1c6d639b99fe8e9d"), "name" : "Howard", "favorites" : [  "pretzels",  "beer" ] }
+
+	Comando $all .- Permite hacer busquedas por datos multiples:
+
+> db.accounts.find({favorites : { $all : ["pretzels","beer"] }})
+{ "_id" : ObjectId("52fd88ce1c6d639b99fe8e9d"), "name" : "Howard", "favorites" : [  "pretzels",  "beer" ] }
+{ "_id" : ObjectId("52fd8a8c1c6d639b99fe8e9e"), "name" : "Irving", "favorites" : [  "pretzels",  "beer",  "cheese" ] }
+
+//IMPORTANTE: toma en cuenta el orden de los datos en el array
+ 
+ 	Comando $in .- Similar al $all pero no toma en cuenta el orden de la busqueda
+> db.accounts.find({names : { $in : ["Howard","John"] }})
+> db.accounts.find({name : { $in : ["Howard","John"] }})
+{ "_id" : ObjectId("52fd88ce1c6d639b99fe8e9d"), "name" : "Howard", "favorites" : [  "pretzels",  "beer" ] }
+{ "_id" : ObjectId("52fd8a9b1c6d639b99fe8e9f"), "name" : "John", "favorites" : [  "beer",  "cheese" ] }
+
+Busqueda en documentos(Objetos) Anidados
+
+Para poder realizar una busqueda sobre objetos anidados es necesario insertar en el metodo find una equivalencia al objeto en cuestion asignado al campo clave:
+
+> db.users.find({email : {work:"asd@gmail.com", personal : "sss@gmail.com" }})
+{ "_id" : ObjectId("52fd8d7e1c6d639b99fe8ea0"), "name" : "Richard", "email" : { "work" : "asd@gmail.com", "personal" : "sss@gmail.com" } }
+
+Para poder realizar consultas fijas mas exactas se encuentra la siguiente sintaxis:
+
+> db.users.find({email.work:"asd@gmail.com" })
+Thu Feb 13 21:32:47.227 SyntaxError: Unexpected token .
+> db.users.find({"email.work":"asd@gmail.com" })
+{ "_id" : ObjectId("52fd8d7e1c6d639b99fe8ea0"), "name" : "Richard", "email" : { "work" : "asd@gmail.com", "personal" : "sss@gmail.com" } }
+
+y asi podria ser ingresado a cuantos niveles sean necesarios
+
+
+Metodos
+	.limit() // Igual al de mysql
+	.sort(-1)// Ordenamiento inverso -- Similar al order by mysql
+	.skip(2)// Saltando los primeros 2
+
+Metodo count
+	Tiene una operacion similar al find. Obviamente sirve para obtener el numero de registros:
+
+> db.scores.count({type:"Exam"})
+1000
+
+
+Comando Update (.update())
+	 Toma dos argumentos. 
+	 	El primero es la busqueda.
+	 	El segundo son los cambios o agregaciones aplicados al resultado de dicha busqueda.
+
+> db.people.update({name: "smith"},{name:"Thompson", salary: 50000})
+//IMPORTANTE: ESTA OPERACION ELIMINA TODOS LOS DEMAS ATRIBUTOS Y LOS REEMPLAZA TOTALMENTE POR EL 2DO OBJETO
+
+Para evitar la perdida de datos se utiliza el comando $set el cual aplica la modificacion sin la subsecuente perdida
+
+> db.people.update({name:"Alice"},{$set : {age: 30}})
+> db.people.find({name:"Alice"})
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 30, "name" : "Alice" }
+
+Para realizar operaciones de incremento y obviamente actualizacion:
+> db.people.update({name:"Alice"},{$inc : {age: 1}})
+> db.people.find({name:"Alice"})
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
+
+
+
+
+
+
+
