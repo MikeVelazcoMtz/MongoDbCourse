@@ -113,8 +113,154 @@ Para realizar operaciones de incremento y obviamente actualizacion:
 { "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
 
 
+Operaciones ( Update ) sobre arrays
+
+Suponiendo el siguiente registro:
+
+> db.arrays.insert( { _id: 0, a:[1,2,3,4] } )
+
+> db.arrays.update( {_id: 0},{ $set :  {"a.2": 5} } ); // Reasignacion Por Indice
+
+> db.arrays.update( {_id: 0},{ $set :  {"a.2": 5} } );
+> db.arrays.update( {_id: 0},{ $push :  {a: 6} } );
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 1, 2, 5, 4, 6 ] }
+> db.arrays.update( {_id: 0},{ $pop :  {a: 1} } );// Elimina el ultimo de la lista
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 1, 2, 5, 4 ] }
+> db.arrays.update( {_id: 0},{ $pop :  {a: -1} } );
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 2, 5, 4 ] }
+> db.arrays.update( {_id: 0},{ $pushAll :  {a: [7,8,9]} } );// Extendiendo el array con otro
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 2, 5, 4, 7, 8, 9 ] }
+> db.arrays.update( {_id: 0},{ $pull :  {a: 5} } );// Elimina por valor no por indice
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 2, 4, 7, 8, 9 ] }
+> db.arrays.update( {_id: 0},{ $pullAll :  {a: [2,4,8]} } );// Elimina los Valores del array
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 7, 9 ] }
+> db.arrays.update( {_id: 0},{ $addToSet :  {a: 5} } );// Actua como Push pero sin repeticiones
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 7, 9, 5 ] }
+> db.arrays.update( {_id: 0},{ $addToSet :  {a: 5} } );
+> db.arrays.find().pretty()
+{ "_id" : 0, "a" : [ 7, 9, 5 ] }
 
 
+Upsert 
+	Realiza una actualizacion y si no se encuentra dicho registro se añade uno.
+	Ejemplo:
+
+> db.people.update({name:"George"}, {$set:{age: 40}}, {upsert: true} )
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000 }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "name" : "Jones", "age" : 35, "profession" : "baker" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42 }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George" }
+> db.people.update({age : {$gt : 50}}, {$set:{name: "William"}}, {upsert: true} )
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000 }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "name" : "Jones", "age" : 35, "profession" : "baker" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42 }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William" }
+
+Multi-Update
+	En caso de elegir una busqueda que aplique sobre todos los registros ( un objeto vacio) y no aplicar el atributo multi en true, lo que sucedera es que dicha operacion solamente afecte al primer registro
+
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000 }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "name" : "Jones", "age" : 35, "profession" : "baker" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42 }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William" }
+> db.people.update({}, {$set : {title: "Dr"}})
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000, "title" : "Dr" }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "name" : "Jones", "age" : 35, "profession" : "baker" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42 }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William" }
+
+> db.people.update({}, {$set : {title: "Dr"}}, {multi : true})
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000, "title" : "Dr" }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "age" : 35, "name" : "Jones", "profession" : "baker", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie", "title" : "Dr" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred", "title" : "Dr" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42, "title" : "Dr" }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice", "title" : "Dr" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George", "title" : "Dr" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William", "title" : "Dr" }
+
+En mongoDB no existen las trasacciones aisladas, puesto que incluso las operaciones de multiupdate pueden ser pausadas y recuperadas tiempo despues
+
+Comando remove
+	obviamente sirve para eliminar y es muy similar al comando find
 
 
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000, "title" : "Dr" }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "age" : 35, "name" : "Jones", "profession" : "baker", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie", "title" : "Dr" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred", "title" : "Dr" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42, "title" : "Dr" }
+{ "_id" : ObjectId("52fc425c7fd72937b99a6696"), "age" : 31, "name" : "Alice", "title" : "Dr" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George", "title" : "Dr" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William", "title" : "Dr" }
+> db.people.remove({name : "Alice"})
+> db.people.find()
+{ "_id" : ObjectId("52faefd624f89307bdae36c0"), "name" : "Thompson", "salary" : 50000, "title" : "Dr" }
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "age" : 35, "name" : "Jones", "profession" : "baker", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie", "title" : "Dr" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred", "title" : "Dr" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42, "title" : "Dr" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George", "title" : "Dr" }
+{ "_id" : ObjectId("530176ae53846429fe31803b"), "name" : "William", "title" : "Dr" }
+
+> db.people.remove({name : {$gt : "M"}})
+> db.people.find()
+{ "_id" : ObjectId("52faf43624f89307bdae36c1"), "age" : 35, "name" : "Jones", "profession" : "baker", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42607fd72937b99a6697"), "name" : "Bob", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42667fd72937b99a6698"), "name" : "Charlie", "title" : "Dr" }
+{ "_id" : ObjectId("52fc426b7fd72937b99a6699"), "name" : "Dave", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42707fd72937b99a669a"), "name" : "Edgar", "title" : "Dr" }
+{ "_id" : ObjectId("52fc42777fd72937b99a669b"), "name" : "Fred", "title" : "Dr" }
+{ "_id" : ObjectId("52fc440d7fd72937b99a669c"), "name" : 42, "title" : "Dr" }
+{ "_id" : ObjectId("5301765553846429fe31803a"), "age" : 40, "name" : "George", "title" : "Dr" }
+// IMPORTANTE: HAY QUE TENER EN CUENTA QUE SI NO SE LE ASIGNAN PROPIEDADES, ELIMINARA TODO EL DOCUMENTO. EL COMANDO DROP ES MAS UTIL PARA ELIMINAR TODO DATO
 
