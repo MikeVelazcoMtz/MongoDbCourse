@@ -82,9 +82,9 @@ y asi podria ser ingresado a cuantos niveles sean necesarios
 
 
 Metodos
-	.limit() // Igual al de mysql
-	.sort(-1)// Ordenamiento inverso -- Similar al order by mysql
-	.skip(2)// Saltando los primeros 2
+	.limit() // Igual al de mysql . Sucede  tercero en el grupo
+	.sort(-1)// Ordenamiento inverso -- Similar al order by mysql. Sucede Primero en el grupo
+	.skip(2)// Saltando los primeros 2. Sucede segundo en el grupo
 
 Metodo count
 	Tiene una operacion similar al find. Obviamente sirve para obtener el numero de registros:

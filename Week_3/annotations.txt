@@ -1,0 +1,35 @@
+Semana 3
+				################# RECUERDA: UN DOCUMENTO NO PUEDE PESAR MAS DE 16MB ##################
+				######### IMPORTANTE EN SISTEMAS LINUX. PARA DETENER EL SERVICIO (sudo service mongodb stop) #########
+	Diseño del esquema de datos en MongoDB
+
+Debido a que no pueden existir uniones, la forma optima para operar y acceder a los datos
+es la adaptación directa a la forma de desarrollo adaptando el diseño del esquema a los patrones de acceso a la información de dicha base de datos.
+
+Objetivos de la normalizacion
+	
+- Liberar la BD de anomalías de modificación
+- Minimizar el rediseño al extender la base de datos
+- Evitar cualquier tendencia hacia cualquier patron  de acceso
+
+	Sobre las operaciones atomicas 
+
+las operaciones atomicas significan que cuando trabajas en un solo documento, este trabajo se
+completara antes de que alguien vea dicho documento. Ellos veran o todos los cambios que hagas o
+ninguno de ellos
+
+	Sobre las relaciones muchos a muchos, muchos a pocos y uno a muchos
+
+Para satisfacer dichas relaciones existen tres opciones:
+	- Embeber el "uno" en "los muchos" cuando los muchos sean demasiados
+	- Embeber el "_id" de "el uno" en "los muchos" para afectar lo menos posible el almacenamiento (obviamente mejor que la primera opcion)
+	- Embeber "los muchos" en "el uno" cuando no afecte el tamaño maximo del documento (16 MB)
+
+Opcion muchos a muchos
+	- Embeber en un array los ID's a conveniencia
+
+
+Indexacion en MongoDB
+	- db.students.ensureIndex({'teachers' : 1});
+	- db.students.find({'teachers' : {'$all' : [1,3]}}).explain
+
