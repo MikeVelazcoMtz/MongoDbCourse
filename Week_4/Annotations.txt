@@ -1,0 +1,463 @@
+Week 4
+	
+	Creacion de Indices
+
+db.Collection.ensureIndex({ _id : 1})// ASCENDENTE
+db.Collection.ensureIndex({ _id : 1, class: -1})// DESCENDENTE  y tambien puede ser multiple
+
+	la asignacion de orden tiene objecivo en la ordenacion misma de las colecciones en las
+consultas
+
+	Encontrar Indices
+para encontrar todos los indices del sistema se utliza el siguiente comando:
+
+> db.system.indexes.find()
+{ "v" : 1, "key" : { "_id" : 1 }, "ns" : "school.people", "name" : "_id_" }
+{ "v" : 1, "key" : { "_id" : 1 }, "ns" : "school.scores", "name" : "_id_" }
+{ "v" : 1, "key" : { "_id" : 1 }, "ns" : "school.students", "name" : "_id_" }
+
+Otra opcion para localizar los indices dentro de una coleccion:
+
+> db.students.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"ns" : "school.students",
+		"name" : "_id_"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"student_id" : 1
+		},
+		"ns" : "school.students",
+		"name" : "student_id_1"
+	}
+]
+
+Para poder eliminar indices sobre colecciones se utiliza el siguiente comando:
+
+> db.students.dropIndex({'student_id': 1})
+{ "nIndexesWas" : 2, "ok" : 1 }
+
+Despues:
+> db.students.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"ns" : "school.students",
+		"name" : "_id_"
+	}
+]
+
+para aplicar indexacion sobre elementos complejos como array mongo realiza una indexacion
+multiclave, lo cual indica que generara un indice por cada elemento en dicho array
+
+si intentas registrar dos arrays en una indexacion, podras hacerlo, pero al intentar realizar una
+inserccion, mongoDB te lo impedira ya que seria un problema muy fuerte de procesamiento.
+ Ejemplo:
+
+> use test
+switched to db test
+> db.bbb.insert({a:1,b:1})
+> db.bbb.ensureIndex({a:1,b:1})
+> db.bbb.ensureIndex({a:1,b:[1,2,3]})
+{
+	"err" : "bad index key pattern { a: 1.0, b: [ 1.0, 2.0, 3.0 ] }",
+	"code" : 10098,
+	"n" : 0,
+	"connectionId" : 1,
+	"ok" : 1
+}
+> db.bbb.insert({a:1,b:[1,2,3]})
+> db.bbb.insert({a:1,b:[1,2,3]})
+> db.bbb.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"ns" : "test.bbb",
+		"name" : "_id_"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"a" : 1,
+			"b" : 1
+		},
+		"ns" : "test.bbb",
+		"name" : "a_1_b_1"
+	}
+]
+> db.bbb.insert({a:[1,2,3],b:[1,2,3]})
+cannot index parallel arrays [b] [a]
+
+Los indices pueden ser creados a distintos niveles:
+
+db.people.ensureIndex({'addres.telephone':1})
+
+Asignacion de indices unicos:
+
+> db.stuff.insert({thing:"pear"})
+> db.stuff.ensureIndex({thing:1})
+> db.stuff.insert({thing:"pear"})
+> db.stuff.insert({thing:"apple"})
+> db.stuff.getIndexes()
+[
+	{
+		"v" : 1,
+		"key" : {
+			"_id" : 1
+		},
+		"ns" : "test.stuff",
+		"name" : "_id_"
+	},
+	{
+		"v" : 1,
+		"key" : {
+			"thing" : 1
+		},
+		"ns" : "test.stuff",
+		"name" : "thing_1"
+	}
+]
+> db.stuff.dropIndex({thing:1})
+{ "nIndexesWas" : 2, "ok" : 1 }
+> db.stuff.ensureIndex({thing:1,{unique: true}})
+Tue Feb 25 20:54:55.877 SyntaxError: Unexpected token {
+> db.stuff.ensureIndex({thing:1},{unique: true})
+{
+	"err" : "E11000 duplicate key error index: test.stuff.$thing_1  dup key: { : \"pear\" }",
+	"code" : 11000,
+	"n" : 0,
+	"connectionId" : 1,
+	"ok" : 1
+}
+> db.stuff.find()
+{ "_id" : ObjectId("530d56c56b4f8f994506aed2"), "thing" : "pear" }
+{ "_id" : ObjectId("530d56f76b4f8f994506aed4"), "thing" : "pear" }
+{ "_id" : ObjectId("530d56fa6b4f8f994506aed5"), "thing" : "apple" }
+> db.st
+db.stats(  db.stuff
+> db.stuff.remove({_id: ObjectId("530d56f76b4f8f994506aed4")})
+> db.stuff.ensureIndex({thing:1},{unique: true})
+
+Existe tambien una opcion para realizar la eliminacion de duplicados mientras se realiza la
+asignacion de los indices, pero obviamente es muy peligrosa debido a que implica perdidad de
+datos
+
+> db.stuff.ensureIndex({thing:1},{unique: true,dropDups:true})// Siempre debe estar acompanada de unique
+
+indices esparcidos
+	perimte asignar indices a campos que pueden o no existir. es importante mencionar que los
+elementos sin dicha llave no seran indexados y por lo tanto tampoco seran encontrados cuando se
+realice un sorting.
+
+db.people.ensureIndex({title:1}, {sparse:1})
+
+si intentas buscar un elementos por su valor null, no obtendras nada debido a que dichos
+elementos no se encuentran indexados
+
+Creacion de indice. ¿ primer plano (foreground) o segundo plano (background)?
+
+db.people.ensureIndex({title:1}, {background:true})// Ejemplo
+
+Foreground : 
+			- Default
+			- Bloquea las escrituras (DB Block)
+			- Es mas rapido
+Background :
+			-  Es mas lento
+			- No bloquea la escritura (Permite la concurrencia)
+
+Uso de Explain
+
+	Perminte conocer la operacion de las consultas ejecutadas, y tambien conocer si se utilizaron o no los indices
+
+
+> for(var i = 1; i < 100000; i++){ db.foo.insert({a: i, b: i, c: i});  }
+> db.foo.ensureIndex({a:1,b:1,c:1})
+> db.foo.find({c:1})
+{ "_id" : ObjectId("530e430ff6b74a56ab22324a"), "a" : 1, "b" : 1, "c" : 1 }
+> db.foo.find({c:1}).explain()
+{
+	"cursor" : "BasicCursor",
+	"isMultiKey" : false,
+	"n" : 1,
+	"nscannedObjects" : 99999,
+	"nscanned" : 99999,
+	"nscannedObjectsAllPlans" : 99999,
+	"nscannedAllPlans" : 99999,
+	"scanAndOrder" : false,
+	"indexOnly" : false,
+	"nYields" : 0,
+	"nChunkSkips" : 0,
+	"millis" : 61,
+	"indexBounds" : {
+
+	},
+	"server" : "MacBook-de-Mike.local:27017"
+}
+> db.foo.find({a:1}).explain()
+{
+	"cursor" : "BtreeCursor a_1_b_1_c_1",
+	"isMultiKey" : false,
+	"n" : 1,
+	"nscannedObjects" : 1,
+	"nscanned" : 1,
+	"nscannedObjectsAllPlans" : 1,
+	"nscannedAllPlans" : 1,
+	"scanAndOrder" : false,
+	"indexOnly" : false,
+	"nYields" : 0,
+	"nChunkSkips" : 0,
+	"millis" : 7,
+	"indexBounds" : {
+		"a" : [
+			[
+				1,
+				1
+			]
+		],
+		"b" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		],
+		"c" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		]
+	},
+	"server" : "MacBook-de-Mike.local:27017"
+}
+> db.foo.find({a:1},{a:1,b:1,_id:0})
+{ "a" : 1, "b" : 1 }
+> db.foo.find({a:1},{a:1,b:1,_id:0}).explain()
+{
+	"cursor" : "BtreeCursor a_1_b_1_c_1",
+	"isMultiKey" : false,
+	"n" : 1,
+	"nscannedObjects" : 0,
+	"nscanned" : 1,
+	"nscannedObjectsAllPlans" : 0,
+	"nscannedAllPlans" : 1,
+	"scanAndOrder" : false,
+	"indexOnly" : true,
+	"nYields" : 0,
+	"nChunkSkips" : 0,
+	"millis" : 0,
+	"indexBounds" : {
+		"a" : [
+			[
+				1,
+				1
+			]
+		],
+		"b" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		],
+		"c" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		]
+	},
+	"server" : "MacBook-de-Mike.local:27017"
+}
+> db.foo.find({$and:[{c:{$gt:250}, {c:{$lte:500}}  }]}).sort({a:1}).explain()
+Wed Feb 26 13:47:22.653 SyntaxError: Unexpected token {
+> db.foo.find({$and:[{c:{$gt:250}}, {c:{$lte:500}}  ]}).sort({a:1}).explain()
+{
+	"cursor" : "BtreeCursor a_1_b_1_c_1",
+	"isMultiKey" : false,
+	"n" : 250,
+	"nscannedObjects" : 250,
+	"nscanned" : 95451,
+	"nscannedObjectsAllPlans" : 590,
+	"nscannedAllPlans" : 95791,
+	"scanAndOrder" : false,
+	"indexOnly" : false,
+	"nYields" : 0,
+	"nChunkSkips" : 0,
+	"millis" : 302,
+	"indexBounds" : {
+		"a" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		],
+		"b" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		],
+		"c" : [
+			[
+				250,
+				500
+			]
+		]
+	},
+	"server" : "MacBook-de-Mike.local:27017"
+}
+> db.foo.dropIndex({a:1,b:1,c:1})
+{ "nIndexesWas" : 2, "ok" : 1 }
+> db.foo.ensureIndex({a:1,b:1})
+> db.foo.find({$and:[{c:{$gt:250}}, {c:{$lte:500}}  ]}).sort({a:1}).explain()
+{
+	"cursor" : "BtreeCursor a_1_b_1",
+	"isMultiKey" : false,
+	"n" : 250,
+	"nscannedObjects" : 99999,
+	"nscanned" : 99999,
+	"nscannedObjectsAllPlans" : 100350,
+	"nscannedAllPlans" : 100350,
+	"scanAndOrder" : false,
+	"indexOnly" : false,
+	"nYields" : 0,
+	"nChunkSkips" : 0,
+	"millis" : 188,
+	"indexBounds" : {
+		"a" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		],
+		"b" : [
+			[
+				{
+					"$minElement" : 1
+				},
+				{
+					"$maxElement" : 1
+				}
+			]
+		]
+	},
+	"server" : "MacBook-de-Mike.local:27017"
+}
+
+
+Estadisticas 
+	
+	db.collection.stats()
+
+> db.foo.stats()
+{
+	"ns" : "test.foo",
+	"count" : 99999,
+	"size" : 5599960,
+	"avgObjSize" : 56.000160001600015,
+	"storageSize" : 11255808,
+	"numExtents" : 7,
+	"nindexes" : 2,
+	"lastExtentSize" : 5664768,
+	"paddingFactor" : 1,
+	"systemFlags" : 0,
+	"userFlags" : 0,
+	"totalIndexSize" : 6712496,
+	"indexSizes" : {
+		"_id_" : 3262224,
+		"a_1_b_1" : 3450272
+	},
+	"ok" : 1
+}
+
+Tamaño de los indices
+
+> db.foo.totalIndexSize()
+6712496
+
+Cardinalidad de Indices
+	
+	- Cuando se realiza una indizacion normal el numero de indices es una relacion 1:1
+	- Cuando se realiza una indizacion sparse el numero de indices puede ser menor o igual a los indices asignados debido a que no son indizados los datos con llave null
+	- Cuando se realiza una indizacion multiclave el numero de indices puede ser mayor o igual a los indices asignados
+
+
+Comando hint
+
+Cuando posees mas de un indice por coleccion y deseas un mejor rendimiento, puedes solicitar que se utilice un indice con el comando hint
+
+> db.foo.find({a:40000,b:40000,c:40000}).hint({c: 1}).explain()
+
+Indices Geoespaciales
+
+Te permiten encontrar elementos segun su posicion
+
+db.places.find({'location':[21,23]})
+db.places.ensuerIndex({'location':'2d'})
+db.places.find({'location':{$near:[21,23]})
+
+Profiler
+
+posee tres niveles:
+
+	0: Sin registro alguno
+	1: Registro de consultas lentas
+	2: Registro de todas las operaciones
+
+db.system.profile.find().pretty()
+
+db.getProfilerLevel()
+db.getProfilertatus()
+db.setProfilerLevel(1,4)// Nivel, milisegundos para considerar consulta como lenta
+
+mongostat
+
+	te muestra estadisticas de la operacion de la base de datos. lo mas importante de esto es la operacion con los indices, y sus posibles fallas
+
+mongotop
+	Te permite realizar un muestreo del rendimiento del sistema permitiendo saber en que colecciones se esta gastando los recursos
+
+sharding
+	
+
+	
